@@ -80,6 +80,17 @@ class AnnotatorConfig:
 
 
 @dataclass
+class TrackingConfig:
+    """Configuration for ByteTrack object tracking."""
+    
+    enabled: bool = True
+    track_thresh: float = 0.25      # Detection confidence threshold for track activation
+    track_buffer: int = 30           # Number of frames to buffer when track is lost
+    match_thresh: float = 0.8        # Threshold for matching tracks with detections
+    frame_rate: int = 30             # Frame rate of video
+
+
+@dataclass
 class DetectorConfig:
     """Configuration for RTSP object detector."""
     
@@ -99,6 +110,9 @@ class DetectorConfig:
     
     # Annotator configuration
     annotator: AnnotatorConfig = field(default_factory=AnnotatorConfig)
+    
+    # Tracking configuration
+    tracking: TrackingConfig = field(default_factory=TrackingConfig)
     
     @classmethod
     def from_surveillance_config(cls, surveillance_config) -> 'DetectorConfig':
@@ -127,6 +141,16 @@ class DetectorConfig:
         appearance_config = surveillance_config.config_data.get('appearance', {})
         annotator_config = AnnotatorConfig.from_appearance_config(appearance_config)
         
+        # Get tracking settings
+        tracking_config_dict = detection_config.get('tracking', {})
+        tracking_config = TrackingConfig(
+            enabled=tracking_config_dict.get('enabled', True),
+            track_thresh=tracking_config_dict.get('track_thresh', 0.25),
+            track_buffer=tracking_config_dict.get('track_buffer', 30),
+            match_thresh=tracking_config_dict.get('match_thresh', 0.8),
+            frame_rate=tracking_config_dict.get('frame_rate', 30)
+        )
+        
         return cls(
             model_path=detection_config.get('model', 'yolov8n.pt'),
             confidence=detection_config.get('confidence', 0.4),
@@ -136,7 +160,8 @@ class DetectorConfig:
             filter_classes=filter_classes,
             min_detection_area=filter_config.get('min_area'),
             max_detection_area=filter_config.get('max_area'),
-            annotator=annotator_config
+            annotator=annotator_config,
+            tracking=tracking_config
         )
     
     def create_box_annotator(self) -> sv.BoxAnnotator:
@@ -154,4 +179,16 @@ class DetectorConfig:
             text_scale=self.annotator.label_text_scale,
             text_padding=self.annotator.label_text_padding,
             border_radius=self.annotator.label_border_radius
+        )
+    
+    def create_tracker(self) -> Optional[sv.ByteTrack]:
+        """Create configured ByteTrack tracker instance if tracking is enabled."""
+        if not self.tracking.enabled:
+            return None
+        
+        return sv.ByteTrack(
+            track_activation_threshold=self.tracking.track_thresh,
+            lost_track_buffer=self.tracking.track_buffer,
+            minimum_matching_threshold=self.tracking.match_thresh,
+            frame_rate=self.tracking.frame_rate
         )

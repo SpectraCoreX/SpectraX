@@ -8,18 +8,17 @@ SpectraX is a streamlined surveillance system for turning any phone, tablet, or 
 
 - [What It Does](#what-it-does)
 - [Key Features](#key-features)
-- [System Architecture](#system-architecture)
-- [Getting Started](#getting-started)
+- [Quick Start](#quick-start)
+- [Basic Usage](#basic-usage)
 - [Configuration](#configuration)
-- [Object Detection](#object-detection)
-- [Event-Based Recording](#event-based-recording)
-- [Web Dashboard](#web-dashboard)
-- [Advanced Usage](#advanced-usage)
-- [Troubleshooting](#troubleshooting)
+- [Connecting Your Cameras](#connecting-your-cameras)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## What It Does
 
-SpectraX wraps [MediaMTX](https://github.com/bluenviron/mediamtx), a powerful RTSP/HLS server, with intelligent object detection and recording capabilities. Turn any device with a camera into a smart surveillance system in minutes.
+SpectraX wraps [MediaMTX](https://github.com/bluenviron/mediamtx), a powerful RTSP/HLS server, with intelligent object detection, tracking, and recording capabilities. Turn any device with a camera into a smart surveillance system with advanced analytics in minutes.
 
 ## Key Features
 
@@ -35,6 +34,14 @@ SpectraX wraps [MediaMTX](https://github.com/bluenviron/mediamtx), a powerful RT
 - **Smart Filtering**: Detect specific objects (person, car, dog, etc.)
 - **Visual Overlays**: Bounding boxes and labels on detected objects
 - **Adjustable Confidence**: Fine-tune detection sensitivity
+
+### 🎯 Object Tracking (NEW!)
+- **Persistent IDs**: Track individual objects across frames with unique IDs
+- **ByteTrack Integration**: State-of-the-art multi-object tracking
+- **Visual Feedback**: See tracker IDs in labels (e.g., "person #42 0.95")
+- **Database Storage**: Query recordings by specific tracker ID
+- **Analytics**: Track which objects appear most frequently
+- **Configurable**: Adjust tracking parameters for your use case
 
 ### 📹 Event-Based Recording
 - **Intelligent Recording**: Automatically record when objects are detected
@@ -56,57 +63,7 @@ SpectraX wraps [MediaMTX](https://github.com/bluenviron/mediamtx), a powerful RT
 - **Network Isolation**: Bind to localhost or specific interfaces
 - **Self-Signed Certificates**: Included for immediate use
 
-## System Architecture
-
-SpectraX has been streamlined into a clean, modular architecture:
-
-```
-root/
-├── video-feed/                 # 📦 Main Python package
-│   ├── videofeed/              # Core modules
-│   │   ├── surveillance.py    # 🎯 MAIN ENTRY POINT - Unified CLI
-│   │   ├── config.py          # 🔧 Configuration management
-│   │   ├── detector.py        # 🎯 YOLO object detection
-│   │   ├── recorder.py        # 📹 Event-based recording
-│   │   ├── visualizer.py      # 🌐 Web interface & API
-│   │   ├── credentials.py     # 🔐 Secure credential management
-│   │   ├── api.py             # 🔗 Recordings database API
-│   │   ├── utils.py           # 🛠️ Utility functions
-│   │   ├── constants.py       # 📋 Shared constants
-│   │   └── templates/         # 🎨 Web interface templates
-│   ├── config/                # ⚙️ Configuration files
-│   │   └── surveillance.yml   # Main config file
-│   ├── models/                # 🤖 YOLO models
-│   ├── ui/                    # 🖥️ Web dashboards
-│   ├── tests/                 # 🧪 Test suite
-│   ├── setup.py               # Package setup
-│   └── requirements.txt       # Python dependencies
-├── scripts/                   # 🚀 Helper scripts
-│   ├── surveillance.sh        # Main launcher
-│   └── surveillance.service   # Systemd service
-├── docs/                      # 📚 Documentation
-└── README.md                  # This file
-```
-
-### Core Modules
-
-- **`surveillance.py`**: Unified command-line interface with all commands:
-  - `config` - Start with YAML configuration file
-  - `start` - Start with command-line options
-  - `quick` - Quick start with defaults
-  - `run` - Start streaming server only
-  - `detect` - Start object detection only
-  - `reset` - Reset stored credentials
-
-- **`config.py`**: Configuration management with `SurveillanceConfig` class for YAML parsing
-
-- **`detector.py`**: YOLO-based object detection with multi-camera support
-
-- **`recorder.py`**: Event-based recording triggered by object detection
-
-- **`visualizer.py`**: FastAPI web interface with live video and recordings browser
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
@@ -170,9 +127,9 @@ cd ../..
 
 3. **Configure Your System**
 
-Edit `video-feed/config/surveillance.yml` to set your camera paths and preferences.
+Edit `video-feed/config/surveillance.yml` to set your camera paths and preferences (see [Configuration Guide](docs/CONFIGURATION_GUIDE.md) for details).
 
-### Quick Start
+### Start the System
 
 ```bash
 # Start with configuration file (recommended)
@@ -187,73 +144,81 @@ Edit `video-feed/config/surveillance.yml` to set your camera paths and preferenc
 
 The system will display connection URLs for your cameras and the web interface.
 
+## Basic Usage
+
+### Web Dashboard
+
+Access the web interface at the URL shown when starting the system (e.g., `http://192.168.x.x:8080`):
+
+- **Live Video**: Real-time streams with AI detection overlays
+- **Multi-Camera Grid**: View all cameras simultaneously
+- **Recordings Browser**: Search and play recorded clips
+- **Statistics**: FPS, detection counts, and system status
+
+### Command Line
+
+```bash
+# Start with configuration file (recommended)
+./scripts/surveillance.sh config
+
+# Quick start with defaults
+./scripts/surveillance.sh quick
+
+# Start streaming server only (no detection)
+python -m videofeed.surveillance run --path video/front-door
+
+# Start detection only (existing stream)
+python -m videofeed.surveillance detect --rtsp-url "rtsps://viewer:pass@host:8322/video/cam"
+
+# Query recordings by tracker ID
+python scripts/query_recordings.py tracker 42
+
+# Reset stored credentials
+python -m videofeed.surveillance reset
+```
+
+### REST API
+
+Access recordings and system data programmatically:
+
+```bash
+# Get system status
+curl http://localhost:8080/status
+
+# List all recordings
+curl http://localhost:8080/api/recordings
+
+# Get recording statistics
+curl http://localhost:8080/api/recordings/stats
+```
+
+See [API Documentation](docs/API.md) for complete endpoint reference.
+
 ## Configuration
 
-All settings are managed in `video-feed/config/surveillance.yml`. This is the **only file you need to edit**.
+All settings are managed in `video-feed/config/surveillance.yml`. 
 
-### Basic Configuration
-
+**Quick example:**
 ```yaml
-# Camera stream paths
 cameras:
   - video/front-door
   - video/backyard
-  - video/garage
 
-# Network settings
-network:
-  bind: "127.0.0.1"  # localhost only (secure)
-  # bind: "0.0.0.0"  # all interfaces (LAN access)
-  api_port: 3333
-
-# Object detection
 detection:
   enabled: true
-  port: 8080
-  model: "yolov8n.pt"  # Options: yolov8n, yolov8s, yolov8m, yolov8l
+  model: "yolov8n.pt"
   confidence: 0.4
-  resolution:
-    width: 960
-    height: 540
-```
-
-### Advanced Configuration
-
-**Detection Filtering:**
-```yaml
-detection:
   filters:
-    classes: ["person", "car", "dog"]  # Only detect these (empty = all)
-    min_area: 1000  # Ignore tiny detections
-    max_area: 500000  # Ignore huge detections
-```
+    classes: ["person", "car", "dog"]
 
-**Visual Appearance:**
-```yaml
-appearance:
-  box:
-    thickness: 2
-    color: "yellow"  # green, red, blue, yellow, white, black, roboflow
-  label:
-    text_scale: 0.5
-    position: "top_left"
-```
-
-**Recording Settings:**
-```yaml
 recording:
   enabled: true
-  min_confidence: 0.5
-  pre_buffer_seconds: 10  # Record before detection
-  post_buffer_seconds: 10  # Record after detection
   max_storage_gb: 10.0
-  recordings_dir: "~/video-feed-recordings"
-  record_objects: ["person", "car", "dog"]  # Only record these
 ```
 
-See the config file for complete documentation of all options.
+For complete configuration options, see the [Configuration Guide](docs/CONFIGURATION_GUIDE.md).
 
-### Connecting Your Cameras
+## Connecting Your Cameras
 
 When the system starts, it displays connection URLs:
 
@@ -268,307 +233,16 @@ When the system starts, it displays connection URLs:
 - **OBS/VLC**: Use the viewer RTSPS URL with credentials
 - **Browser HLS**: Use the HLS URL for browser-based viewing
 
-## Object Detection
-
-SpectraX uses [YOLOv8 from Ultralytics](https://github.com/ultralytics/ultralytics) for real-time object detection on your video streams.
-
-### Available Models
-
-| Model | Size | Speed | Accuracy | Use Case |
-|-------|------|-------|----------|----------|
-| `yolov8n.pt` | ~6 MB | Fastest | Good | Multiple cameras, limited hardware |
-| `yolov8s.pt` | ~22 MB | Fast | Better | Balanced performance |
-| `yolov8m.pt` | ~52 MB | Medium | Very Good | Better accuracy needed |
-| `yolov8l.pt` | ~88 MB | Slow | Excellent | Single camera, good hardware |
-| `yolov8x.pt` | ~136 MB | Slowest | Best | Maximum accuracy |
-
-Models are automatically loaded from `video-feed/models/` or downloaded on first use.
-
-### Detection Features
-
-**Smart Filtering:**
-- Detect only specific objects (person, car, dog, cat, etc.)
-- Filter by detection size (ignore tiny or huge detections)
-- Adjust confidence threshold to reduce false positives
-
-**Visual Customization:**
-- Choose bounding box colors and thickness
-- Customize label appearance and position
-- Real-time overlay on video streams
-
-**Performance Tuning:**
-- Adjust processing resolution for speed vs. quality
-- Configure frame buffer size
-- Set reconnection intervals
-
-### Detectable Objects
-
-YOLO can detect 80+ object classes including:
-- **People**: person
-- **Vehicles**: car, truck, bus, motorcycle, bicycle
-- **Animals**: dog, cat, bird, horse, cow, sheep
-- **Common items**: backpack, umbrella, handbag, suitcase, bottle, cup, chair, couch, bed, dining table, laptop, cell phone
-
-See [COCO dataset classes](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco.yaml) for the complete list.
-
-## Event-Based Recording
-
-Automatically record video clips when objects are detected.
-
-### How It Works
-
-1. **Continuous Buffering**: System maintains a rolling buffer of recent frames
-2. **Detection Trigger**: When an object is detected, recording starts
-3. **Pre-Buffer**: Includes 10 seconds *before* the detection
-4. **Post-Buffer**: Continues 10 seconds *after* the last detection
-5. **Metadata Storage**: All recordings saved to SQLite database with searchable metadata
-
-### Recording Configuration
-
-```yaml
-recording:
-  enabled: true
-  min_confidence: 0.5  # Only record high-confidence detections
-  pre_buffer_seconds: 10
-  post_buffer_seconds: 10
-  max_storage_gb: 10.0
-  recordings_dir: "~/video-feed-recordings"
-  record_objects: ["person", "car", "dog"]  # Selective recording
-```
-
-### Storage Management
-
-- **Automatic Cleanup**: Oldest recordings deleted when storage limit reached
-- **Metadata Preserved**: Database tracks all recordings with timestamps, objects detected, and confidence scores
-- **Efficient Format**: MP4 videos with H.264 encoding
-
-### Accessing Recordings
-
-- **Web Dashboard**: Browse and play recordings in your browser
-- **REST API**: Query recordings programmatically
-- **File System**: Direct access to MP4 files in recordings directory
-- **Database**: SQLite database for custom queries
-
-## Web Dashboard
-
-Modern web interface for monitoring cameras and managing recordings.
-
-### Features
-
-- **Live Video**: Real-time MJPEG streams with AI detection overlays
-- **Multi-Camera Grid**: View all cameras simultaneously
-- **Recordings Browser**: Search, filter, and play recorded clips
-- **Statistics**: FPS, detection counts, and system status
-- **REST API**: Programmatic access to all features
-- **Responsive**: Works on desktop and mobile browsers
-
-### Accessing the Dashboard
-
-**Option 1: Integrated Dashboard (Recommended)**
-
-1. Start the system:
-   ```bash
-   ./scripts/surveillance.sh config
-   ```
-
-2. Open the URL shown in terminal (e.g., `http://192.168.x.x:8080`)
-
-3. The dashboard shows:
-   - Live video feeds with detection overlays
-   - FPS and detection statistics
-   - Recordings tab for browsing saved clips
-
-**Option 2: Standalone HTML Dashboard**
-
-For quick access without the full system:
-
-```bash
-# Open standalone dashboard
-./scripts/surveillance.sh dashboard
-
-# Or open directly in browser
-open video-feed/ui/dashboard.html
-```
-
-**Note**: The standalone dashboard requires the surveillance system to be running to connect to video streams.
-
-### API Endpoints
-
-**Status and Streams:**
-- `GET /status` - System status and statistics
-- `GET /video/stream` - MJPEG video stream with detections
-- `GET /paths` - Available camera paths
-
-**Recordings:**
-- `GET /api/recordings` - List all recordings
-- `GET /api/recordings/{id}` - Get specific recording
-- `GET /api/recordings/stats` - Recording statistics
-- `GET /recordings/{filename}` - Download recording file
-
-### Technology Stack
-
-- **Backend**: FastAPI + Uvicorn
-- **Streaming**: MJPEG for low-latency video
-- **Database**: SQLite for recording metadata
-- **Templates**: Jinja2 for HTML rendering
-- **Detection**: Real-time YOLO inference
-
-## Advanced Usage
-
-### Command Line Options
-
-**Start with custom settings:**
-```bash
-./scripts/surveillance.sh custom --path video/camera-1 --path video/camera-2
-```
-
-**Python module usage:**
-```bash
-# Start streaming server only (no detection)
-python -m videofeed.surveillance run --path video/front-door
-
-# Start detection only (existing stream)
-python -m videofeed.surveillance detect --rtsp-url "rtsps://viewer:pass@host:8322/video/cam"
-
-# Reset stored credentials
-python -m videofeed.surveillance reset
-```
-
-### Development Mode
-
-```bash
-cd video-feed
-pip install -e .  # Editable install
-
-# Run tests
-pytest
-
-# Run directly
-python -m videofeed.surveillance config
-```
-
-### Systemd Service (Linux)
-
-For running as a system service:
-
-```bash
-# Copy service file
-sudo cp scripts/surveillance.service /etc/systemd/system/
-
-# Edit paths in service file
-sudo nano /etc/systemd/system/surveillance.service
-
-# Enable and start
-sudo systemctl enable surveillance
-sudo systemctl start surveillance
-
-# Check status
-sudo systemctl status surveillance
-```
-
-### Custom TLS Certificates
-
-Replace self-signed certificates with your own:
-
-```yaml
-security:
-  use_tls: true
-  tls_key: "/path/to/your/private.key"
-  tls_cert: "/path/to/your/certificate.crt"
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**MediaMTX fails to start:**
-- Check if MediaMTX is installed: `which mediamtx`
-- Verify ports 8322, 8554, 8888 are not in use
-- Check terminal output for specific error messages
-
-**Connection refused errors:**
-- Ensure MediaMTX is running (check terminal output)
-- Verify network bind address in config (127.0.0.1 vs 0.0.0.0)
-- Check firewall settings
-
-**No video in dashboard:**
-- Verify camera is publishing to the correct URL
-- Check credentials match those shown in terminal
-- Ensure detector is running (look for "Loading model" message)
-
-**Recording not working:**
-- Check `recording.enabled: true` in config
-- Verify recordings directory exists and is writable
-- Check `record_objects` list matches detected objects
-- Ensure sufficient disk space
-
-**Model downloads to wrong location:**
-- Models should auto-load from `video-feed/models/`
-- If not, manually download to that directory
-- Check file permissions
-
-### Configuration Issues
-
-**Script not executable:**
-```bash
-chmod +x scripts/surveillance.sh
-```
-
-**Config file not found:**
-- Verify file exists at `video-feed/config/surveillance.yml`
-- Check file permissions (should be readable)
-
-**Module import errors:**
-```bash
-# Install in development mode
-cd video-feed
-pip install -e .
-```
-
-### Network Setup
-
-**Find your IP address:**
-```bash
-# macOS/Linux
-ifconfig | grep "inet " | grep -v 127.0.0.1
-
-# Windows
-ipconfig
-```
-
-**Port Configuration:**
-- RTSP: 8554 (unencrypted)
-- RTSPS: 8322 (encrypted)
-- HLS: 8888 (browser streaming)
-- Detection: 8080 (web dashboard)
-- API: 3333 (paths discovery)
-
-### Performance Optimization
-
-**Slow detection:**
-- Use smaller model (yolov8n.pt instead of yolov8l.pt)
-- Reduce resolution in config
-- Decrease frame buffer size
-- Limit number of cameras
-
-**High CPU usage:**
-- Lower detection resolution
-- Increase confidence threshold (fewer detections)
-- Use hardware acceleration if available
-
-**Recording lag:**
-- Reduce pre/post buffer seconds
-- Lower video resolution
-- Check disk I/O performance
-
-### Getting Help
-
-1. **Check logs**: Terminal output shows detailed error messages
-2. **Reset credentials**: `python -m videofeed.surveillance reset`
-3. **Test components separately**:
-   - Test MediaMTX: `mediamtx --help`
-   - Test Python: `python -m videofeed.surveillance --help`
-4. **Review documentation**: See `docs/` folder for detailed guides
+## Documentation
+
+### For Users
+- **[Configuration Guide](docs/CONFIGURATION_GUIDE.md)** - Complete configuration reference
+- **[Tracking Guide](docs/tracking_usage_guide.md)** - Object tracking features and usage
+- **[Recording Setup](docs/RECORDING_SETUP.md)** - Event-based recording configuration
+
+### For Developers
+- **[API Documentation](docs/API.md)** - REST API reference for building clients
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - Codebase structure and development guide
 
 ## Contributing
 
@@ -578,6 +252,8 @@ Contributions are welcome! Please:
 3. Make your changes with tests
 4. Submit a pull request
 
+See the [Architecture Guide](docs/ARCHITECTURE.md) for codebase details.
+
 ## License
 
 See [LICENSE](LICENSE) file for details.
@@ -586,5 +262,6 @@ See [LICENSE](LICENSE) file for details.
 
 - [MediaMTX](https://github.com/bluenviron/mediamtx) - Excellent RTSP/HLS server
 - [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) - State-of-the-art object detection
-- [Supervision](https://github.com/roboflow/supervision) - Computer vision utilities
+- [Supervision](https://github.com/roboflow/supervision) - Computer vision utilities and ByteTrack integration
+- [ByteTrack](https://github.com/ifzhang/ByteTrack) - Multi-object tracking algorithm
 - [FastAPI](https://fastapi.tiangolo.com/) - Modern web framework

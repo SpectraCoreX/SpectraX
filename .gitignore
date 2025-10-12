@@ -221,3 +221,5 @@ recordings/
 # Obsolete directories (removed from codebase)
 cli-only/
 basic-ui/streamlit_ui.py
+
+internal-docs/

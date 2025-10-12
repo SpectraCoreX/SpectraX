@@ -68,6 +68,9 @@ class RTSPObjectDetector:
         self.box_annotator = self.config.create_box_annotator()
         self.label_annotator = self.config.create_label_annotator()
         
+        # Tracking
+        self.tracker = self.config.create_tracker()  # ByteTrack tracker (None if disabled)
+        
         # Recording
         self.recording_manager = recording_manager
         self.detector_id = str(uuid.uuid4())  # Unique ID for this detector instance
@@ -151,6 +154,10 @@ class RTSPObjectDetector:
         self.detections = []
         self.fps = 0
         self.frame_count = 0
+        
+        # Reset tracker if it exists
+        if self.tracker is not None:
+            self.tracker.reset()
             
         logger.info("Detector stopped successfully")
         
@@ -192,6 +199,48 @@ class RTSPObjectDetector:
             masked_url = re.sub(r'://([^:]+):([^@]+)@', r'://***:***@', url)
             return masked_url
         return url
+    
+    def _resize_with_aspect_ratio(self, frame: np.ndarray, target_size: Tuple[int, int]) -> np.ndarray:
+        """Resize frame while maintaining aspect ratio.
+        
+        Args:
+            frame: Input frame
+            target_size: Target (width, height)
+        
+        Returns:
+            Resized frame with aspect ratio maintained
+        """
+        target_width, target_height = target_size
+        height, width = frame.shape[:2]
+        
+        # Calculate aspect ratios
+        frame_aspect = width / height
+        target_aspect = target_width / target_height
+        
+        # Determine scaling to fit within target size while maintaining aspect ratio
+        if frame_aspect > target_aspect:
+            # Frame is wider - fit to width
+            new_width = target_width
+            new_height = int(target_width / frame_aspect)
+        else:
+            # Frame is taller - fit to height
+            new_height = target_height
+            new_width = int(target_height * frame_aspect)
+        
+        # Resize frame
+        resized = cv2.resize(frame, (new_width, new_height))
+        
+        # Create canvas with target size and black background
+        canvas = np.zeros((target_height, target_width, 3), dtype=np.uint8)
+        
+        # Calculate position to center the resized frame
+        y_offset = (target_height - new_height) // 2
+        x_offset = (target_width - new_width) // 2
+        
+        # Place resized frame on canvas
+        canvas[y_offset:y_offset + new_height, x_offset:x_offset + new_width] = resized
+        
+        return canvas
         
     def _capture_loop(self) -> None:
         """Main capture loop to read frames from RTSP."""
@@ -209,9 +258,9 @@ class RTSPObjectDetector:
                 self._connect_to_stream()
                 continue
                 
-            # Resize frame if needed
+            # Resize frame if needed (maintaining aspect ratio)
             if self.resolution:
-                frame = cv2.resize(frame, self.resolution)
+                frame = self._resize_with_aspect_ratio(frame, self.resolution)
                 
             # Update FPS counter
             current_time = time.time()
@@ -267,11 +316,12 @@ class RTSPObjectDetector:
         # Apply filters using Supervision's native capabilities
         detections_sv = self._apply_filters(detections_sv, result.names)
         
+        # Apply tracking if enabled
+        if self.tracker is not None:
+            detections_sv = self.tracker.update_with_detections(detections_sv)
+        
         # Build labels for each detection
-        labels = [
-            f"{result.names[class_id]} {confidence:.2f}"
-            for class_id, confidence in zip(detections_sv.class_id, detections_sv.confidence)
-        ]
+        labels = self._build_labels(detections_sv, result.names)
         
         # Annotate frame using Supervision
         annotated_frame = self.box_annotator.annotate(
@@ -305,6 +355,32 @@ class RTSPObjectDetector:
             )
         
         return annotated_frame, detections_list
+    
+    def _build_labels(self, detections: sv.Detections, class_names: Dict) -> List[str]:
+        """Build label strings for detections, including tracker IDs if available.
+        
+        Args:
+            detections: Supervision Detections object
+            class_names: Dictionary mapping class IDs to names
+        
+        Returns:
+            List of label strings
+        """
+        labels = []
+        for i in range(len(detections)):
+            class_name = class_names[detections.class_id[i]]
+            confidence = detections.confidence[i]
+            
+            # Include tracker ID if tracking is enabled and available
+            if self.tracker is not None and detections.tracker_id is not None:
+                tracker_id = detections.tracker_id[i]
+                label = f"{class_name} #{tracker_id} {confidence:.2f}"
+            else:
+                label = f"{class_name} {confidence:.2f}"
+            
+            labels.append(label)
+        
+        return labels
     
     def _apply_filters(self, detections: sv.Detections, class_names: Dict) -> sv.Detections:
         """Apply configured filters to detections using Supervision's native filtering.
@@ -357,6 +433,11 @@ class RTSPObjectDetector:
                 "confidence": float(detections_sv.confidence[i]),
                 "bbox": [int(x1), int(y1), int(x2), int(y2)]
             }
+            
+            # Add tracker_id if tracking is enabled and available
+            if self.tracker is not None and detections_sv.tracker_id is not None:
+                detection["tracker_id"] = int(detections_sv.tracker_id[i])
+            
             detections.append(detection)
         return detections
         
@@ -380,7 +461,8 @@ class RTSPObjectDetector:
             "model": self.model_path,
             "resolution": self.resolution,
             "detections": len(self.detections),
-            "buffer_usage": self.frame_buffer.qsize() / self.buffer_size
+            "buffer_usage": self.frame_buffer.qsize() / self.buffer_size,
+            "tracking_enabled": self.tracker is not None
         }
         
     def get_name(self) -> str:

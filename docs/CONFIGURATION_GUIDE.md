@@ -1,7 +1,7 @@
-# SentriX Configuration Guide
+# SpectraX Configuration Guide
 
-**Last Updated:** 2025-10-02  
-**Version:** 2.0 - Unified Configuration
+**Last Updated:** 2025-10-12  
+**Version:** 2.1 - Unified Configuration with Tracking
 
 ---
 
@@ -157,6 +157,63 @@ filters:
   min_area: null
   max_area: null
 ```
+
+#### **Object Tracking** (NEW!)
+
+```yaml
+tracking:
+  enabled: true
+  track_thresh: 0.25
+  track_buffer: 30
+  match_thresh: 0.8
+  frame_rate: 30
+```
+
+**What it does:** Assigns unique IDs to detected objects and tracks them across frames using ByteTrack.
+
+**Parameters:**
+- `enabled: true` - Enable/disable object tracking
+- `track_thresh: 0.25` - Minimum confidence for tracking (lower = track more objects)
+- `track_buffer: 30` - Frames to remember lost tracks (higher = more persistent IDs)
+- `match_thresh: 0.8` - Threshold for matching tracks (higher = fewer ID switches)
+- `frame_rate: 30` - Video frame rate for buffer calculations
+
+**Visual Feedback:**
+- Without tracking: `person 0.95`
+- With tracking: `person #42 0.95`
+
+**Use Cases:**
+- **Security**: Track specific individuals across recordings
+- **Analytics**: Count unique visitors, measure dwell time
+- **Retail**: Track customer journeys through store
+
+**Examples:**
+
+```yaml
+# High persistence (fewer ID switches)
+tracking:
+  enabled: true
+  track_thresh: 0.25
+  track_buffer: 50  # Remember tracks longer
+  match_thresh: 0.9  # Stricter matching
+
+# Fast tracking (lower latency)
+tracking:
+  enabled: true
+  track_thresh: 0.3
+  track_buffer: 20  # Shorter memory
+  match_thresh: 0.7  # More lenient matching
+
+# Disabled (no tracking)
+tracking:
+  enabled: false
+```
+
+**Important Notes:**
+- Tracker IDs are **session-based** (reset on restart)
+- IDs are **per-camera** (Camera A's #1 ≠ Camera B's #1)
+- IDs persist during brief occlusions
+- Query recordings by tracker ID using the API or query tool
 
 ---
 
@@ -364,6 +421,12 @@ detection:
   filters:
     classes: ["person"]
     min_area: 2000
+  tracking:
+    enabled: true
+    track_thresh: 0.25
+    track_buffer: 30
+    match_thresh: 0.8
+    frame_rate: 30
 
 appearance:
   box:
@@ -406,6 +469,11 @@ detection:
   filters:
     classes: ["dog", "cat", "bird"]
     min_area: 1000
+  tracking:
+    enabled: true
+    track_thresh: 0.3
+    track_buffer: 40  # Pets move unpredictably
+    match_thresh: 0.75
 
 appearance:
   box:
@@ -440,6 +508,11 @@ detection:
   filters:
     classes: ["car", "truck", "bus", "motorcycle", "bicycle"]
     min_area: 5000  # Ignore distant vehicles
+  tracking:
+    enabled: true
+    track_thresh: 0.25
+    track_buffer: 30
+    match_thresh: 0.85  # Higher for vehicle tracking
 
 appearance:
   box:

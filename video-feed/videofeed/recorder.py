@@ -100,9 +100,18 @@ class RecordingManager:
                 objects_detected TEXT NOT NULL,
                 thumbnail_path TEXT,
                 confidence REAL NOT NULL,
-                retained BOOLEAN DEFAULT 1
+                retained BOOLEAN DEFAULT 1,
+                tracker_ids TEXT
             )
             ''')
+            
+            # Add tracker_ids column if it doesn't exist (for existing databases)
+            try:
+                cursor.execute('ALTER TABLE recordings ADD COLUMN tracker_ids TEXT')
+                logger.info("Added tracker_ids column to recordings table")
+            except sqlite3.OperationalError:
+                # Column already exists
+                pass
             
             # Create indexes for faster queries
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_recordings_timestamp ON recordings(timestamp)')
@@ -372,6 +381,9 @@ class RecordingManager:
             # Add current detection frame
             writer.write(frame)
             
+            # Extract tracker IDs from objects if available
+            tracker_ids = [obj.get('tracker_id') for obj in objects if 'tracker_id' in obj]
+            
             # Store recording information
             self.active_recordings[recording_id] = {
                 'stream_id': stream_id,
@@ -384,7 +396,8 @@ class RecordingManager:
                 'thumbnail_path': thumbnail_path,
                 'frame_count': len(stream_info['buffer']),
                 'objects': objects,
-                'confidence': confidence
+                'confidence': confidence,
+                'tracker_ids': tracker_ids
             }
             
             # We don't set a timer to finalize immediately - recording will continue
@@ -492,11 +505,15 @@ class RecordingManager:
             # Save recording to database
             try:
                 cursor = self.db_conn.cursor()
+                
+                # Serialize tracker IDs as JSON (list of integers)
+                tracker_ids_json = json.dumps(recording.get('tracker_ids', []))
+                
                 cursor.execute('''
                 INSERT INTO recordings 
                 (timestamp, stream_id, stream_name, file_path, duration, 
-                objects_detected, thumbnail_path, confidence, retained)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+                objects_detected, thumbnail_path, confidence, retained, tracker_ids)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
                 ''', (
                     datetime.fromtimestamp(recording['start_time']).isoformat(),
                     stream_id,
@@ -505,7 +522,8 @@ class RecordingManager:
                     duration,
                     json.dumps(recording['objects']),
                     recording['thumbnail_path'],
-                    recording['confidence']
+                    recording['confidence'],
+                    tracker_ids_json
                 ))
                 self.db_conn.commit()
                 

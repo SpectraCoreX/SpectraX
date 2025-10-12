@@ -71,6 +71,27 @@ detection:
     max_area: null  # Maximum detection area (null = no limit)
     # Example: min_area: 1000 to ignore tiny detections
     # Example: max_area: 500000 to ignore huge detections
+  
+  # Object tracking settings (ByteTrack)
+  tracking:
+    # Enable/disable object tracking
+    enabled: true
+    
+    # Detection confidence threshold for track activation
+    # Objects below this confidence won't be tracked
+    track_thresh: 0.25
+    
+    # Number of frames to buffer when a track is lost
+    # Higher = tracks persist longer when object is temporarily occluded
+    track_buffer: 30
+    
+    # Threshold for matching tracks with detections
+    # Higher = stricter matching (less ID switches, may lose tracks)
+    # Lower = looser matching (more ID switches, keeps tracks longer)
+    match_thresh: 0.8
+    
+    # Frame rate of video (used for track buffer calculations)
+    frame_rate: 30
 
 # ============================================================
 # VISUAL APPEARANCE

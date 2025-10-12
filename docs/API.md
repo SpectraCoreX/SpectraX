@@ -132,10 +132,15 @@ curl http://localhost:8080/video/stream?path=video/front-door
 List all recordings with metadata.
 
 **Query Parameters:**
-- `limit` (optional): Maximum number of recordings to return (default: 100)
+- `limit` (optional): Maximum number of recordings to return (default: 100, max: 1000)
 - `offset` (optional): Number of recordings to skip (default: 0)
-- `object` (optional): Filter by detected object class (e.g., "person", "car")
-- `tracker_id` (optional): Filter by tracker ID
+- `stream_id` (optional): Filter by stream ID
+- `start_date` (optional): Filter recordings from this date (ISO format)
+- `end_date` (optional): Filter recordings until this date (ISO format)
+- `object_type` (optional): Filter by detected object class (e.g., "person", "car")
+- `min_confidence` (optional): Filter by minimum confidence threshold (0.0-1.0)
+- `sort_by` (optional): Sort field - "timestamp", "confidence", or "duration" (default: "timestamp")
+- `sort_order` (optional): Sort order - "asc" or "desc" (default: "desc")
 
 **Response:**
 ```json
@@ -146,31 +151,58 @@ List all recordings with metadata.
   "recordings": [
     {
       "id": 42,
-      "timestamp": "2025-10-12T19:05:30Z",
-      "stream_path": "video/front-door",
-      "duration_seconds": 15.2,
-      "file_path": "recording_20251012_190530_front-door.mp4",
-      "file_size_bytes": 2048576,
+      "timestamp": "2025-10-12T19:05:30.123456",
+      "stream_id": "fd778237-c3e5-49e8-be03-e588801943be",
+      "stream_name": "front-door",
+      "file_path": "/Users/user/video-feed-recordings/front-door_2025-10-12_19-05-30.mp4",
+      "duration": 15.234567,
       "objects_detected": [
         {
           "class": "person",
           "confidence": 0.95,
-          "tracker_id": 42,
-          "count": 3
+          "bbox": [100, 200, 300, 400],
+          "tracker_id": 42
         },
         {
           "class": "car",
           "confidence": 0.87,
-          "tracker_id": 15,
-          "count": 1
+          "bbox": [500, 100, 700, 300],
+          "tracker_id": 15
         }
       ],
-      "tracker_ids": [42, 15],
-      "max_confidence": 0.95
+      "thumbnail_path": "/Users/user/video-feed-recordings/front-door_2025-10-12_19-05-30_thumb.jpg",
+      "confidence": 0.95,
+      "retained": 1,
+      "tracker_ids": "[42, 15]",
+      "file_url": "/recordings/front-door_2025-10-12_19-05-30.mp4",
+      "thumbnail_url": "/recordings/front-door_2025-10-12_19-05-30_thumb.jpg",
+      "mediaUrl": "/api/recordings/file/front-door_2025-10-12_19-05-30.mp4",
+      "thumbnailMediaUrl": "/api/recordings/file/front-door_2025-10-12_19-05-30_thumb.jpg"
     }
   ]
 }
 ```
+
+**Field Descriptions:**
+- `id`: Unique recording identifier
+- `timestamp`: Recording start time in ISO format
+- `stream_id`: Unique identifier for the camera stream (UUID)
+- `stream_name`: Human-readable name of the camera
+- `file_path`: Absolute path to the video file on the server
+- `duration`: Recording duration in seconds (float)
+- `objects_detected`: Array of detected objects with their properties
+  - `class`: Object class name (e.g., "person", "car", "dog")
+  - `confidence`: Detection confidence score (0.0-1.0)
+  - `bbox`: Bounding box coordinates [x1, y1, x2, y2]
+  - `tracker_id`: Object tracker ID (optional, only if tracking is enabled)
+- `thumbnail_path`: Absolute path to the thumbnail image on the server
+- `confidence`: Highest confidence score among all detections
+- `retained`: Whether the recording is retained (1) or marked for deletion (0)
+- `tracker_ids`: JSON string of tracker IDs (e.g., "[42, 15]") or null
+- `file_url`: Relative URL path to download/stream the video file
+- `thumbnail_url`: Relative URL path to view the thumbnail image
+- `mediaUrl`: Alternative URL path for the video file
+- `thumbnailMediaUrl`: Alternative URL path for the thumbnail
 
 **Examples:**
 ```bash
@@ -181,10 +213,16 @@ curl http://localhost:8080/api/recordings
 curl "http://localhost:8080/api/recordings?limit=10&offset=20"
 
 # Filter by object class
-curl "http://localhost:8080/api/recordings?object=person"
+curl "http://localhost:8080/api/recordings?object_type=person"
 
-# Filter by tracker ID
-curl "http://localhost:8080/api/recordings?tracker_id=42"
+# Filter by stream ID
+curl "http://localhost:8080/api/recordings?stream_id=fd778237-c3e5-49e8-be03-e588801943be"
+
+# Filter by date range
+curl "http://localhost:8080/api/recordings?start_date=2025-10-01&end_date=2025-10-12"
+
+# Filter by minimum confidence and sort
+curl "http://localhost:8080/api/recordings?min_confidence=0.8&sort_by=confidence&sort_order=desc"
 ```
 
 ---
@@ -200,22 +238,27 @@ Get details for a specific recording.
 ```json
 {
   "id": 42,
-  "timestamp": "2025-10-12T19:05:30Z",
-  "stream_path": "video/front-door",
-  "duration_seconds": 15.2,
-  "file_path": "recording_20251012_190530_front-door.mp4",
-  "file_size_bytes": 2048576,
+  "timestamp": "2025-10-12T19:05:30.123456",
+  "stream_id": "fd778237-c3e5-49e8-be03-e588801943be",
+  "stream_name": "front-door",
+  "file_path": "/Users/user/video-feed-recordings/front-door_2025-10-12_19-05-30.mp4",
+  "duration": 15.234567,
   "objects_detected": [
     {
       "class": "person",
       "confidence": 0.95,
-      "tracker_id": 42,
       "bbox": [100, 200, 300, 400],
-      "timestamp": "2025-10-12T19:05:32Z"
+      "tracker_id": 42
     }
   ],
-  "tracker_ids": [42, 15],
-  "max_confidence": 0.95
+  "thumbnail_path": "/Users/user/video-feed-recordings/front-door_2025-10-12_19-05-30_thumb.jpg",
+  "confidence": 0.95,
+  "retained": 1,
+  "tracker_ids": "[42, 15]",
+  "file_url": "/recordings/front-door_2025-10-12_19-05-30.mp4",
+  "thumbnail_url": "/recordings/front-door_2025-10-12_19-05-30_thumb.jpg",
+  "mediaUrl": "/api/recordings/file/front-door_2025-10-12_19-05-30.mp4",
+  "thumbnailMediaUrl": "/api/recordings/file/front-door_2025-10-12_19-05-30_thumb.jpg"
 }
 ```
 
@@ -308,13 +351,21 @@ class SpectraXClient:
         response = requests.get(f"{self.base_url}/status")
         return response.json()
     
-    def get_recordings(self, limit=100, offset=0, object_class=None, tracker_id=None):
+    def get_recordings(self, limit=100, offset=0, object_type=None, stream_id=None, 
+                       start_date=None, end_date=None, min_confidence=None,
+                       sort_by="timestamp", sort_order="desc"):
         """List recordings with optional filters"""
-        params = {"limit": limit, "offset": offset}
-        if object_class:
-            params["object"] = object_class
-        if tracker_id:
-            params["tracker_id"] = tracker_id
+        params = {"limit": limit, "offset": offset, "sort_by": sort_by, "sort_order": sort_order}
+        if object_type:
+            params["object_type"] = object_type
+        if stream_id:
+            params["stream_id"] = stream_id
+        if start_date:
+            params["start_date"] = start_date
+        if end_date:
+            params["end_date"] = end_date
+        if min_confidence is not None:
+            params["min_confidence"] = min_confidence
         
         response = requests.get(f"{self.base_url}/api/recordings", params=params)
         return response.json()
@@ -324,9 +375,9 @@ class SpectraXClient:
         response = requests.get(f"{self.base_url}/api/recordings/{recording_id}")
         return response.json()
     
-    def download_recording(self, filename, output_path):
-        """Download recording file"""
-        response = requests.get(f"{self.base_url}/recordings/{filename}", stream=True)
+    def download_recording(self, file_url, output_path):
+        """Download recording file using file_url from recording metadata"""
+        response = requests.get(f"{self.base_url}{file_url}", stream=True)
         with open(output_path, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
@@ -344,13 +395,15 @@ status = client.get_status()
 print(f"System uptime: {status['uptime_seconds']}s")
 
 # Find recordings with people
-recordings = client.get_recordings(object_class="person", limit=10)
+recordings = client.get_recordings(object_type="person", limit=10)
 print(f"Found {recordings['total']} recordings with people")
 
 # Download a recording
 if recordings['recordings']:
     first = recordings['recordings'][0]
-    client.download_recording(first['file_path'], "output.mp4")
+    print(f"Recording: {first['stream_name']} at {first['timestamp']}")
+    print(f"Duration: {first['duration']:.2f}s, Confidence: {first['confidence']:.2f}")
+    client.download_recording(first['file_url'], "output.mp4")
 ```
 
 ---
@@ -372,8 +425,13 @@ class SpectraXClient {
     const params = new URLSearchParams({
       limit: options.limit || 100,
       offset: options.offset || 0,
-      ...(options.object && { object: options.object }),
-      ...(options.tracker_id && { tracker_id: options.tracker_id })
+      sort_by: options.sort_by || 'timestamp',
+      sort_order: options.sort_order || 'desc',
+      ...(options.object_type && { object_type: options.object_type }),
+      ...(options.stream_id && { stream_id: options.stream_id }),
+      ...(options.start_date && { start_date: options.start_date }),
+      ...(options.end_date && { end_date: options.end_date }),
+      ...(options.min_confidence !== undefined && { min_confidence: options.min_confidence })
     });
     
     const response = await fetch(`${this.baseUrl}/api/recordings?${params}`);
@@ -395,8 +453,9 @@ class SpectraXClient {
     return `${this.baseUrl}/video/stream${params}`;
   }
 
-  getRecordingUrl(filename) {
-    return `${this.baseUrl}/recordings/${filename}`;
+  getRecordingUrl(fileUrl) {
+    // fileUrl should be the file_url from recording metadata (e.g., "/recordings/video.mp4")
+    return `${this.baseUrl}${fileUrl}`;
   }
 }
 
@@ -407,14 +466,27 @@ const client = new SpectraXClient();
 const status = await client.getStatus();
 console.log(`System uptime: ${status.uptime_seconds}s`);
 
-// Find recordings with tracker ID 42
-const recordings = await client.getRecordings({ tracker_id: 42 });
+// Find recordings with people, sorted by confidence
+const recordings = await client.getRecordings({ 
+  object_type: 'person', 
+  min_confidence: 0.8,
+  sort_by: 'confidence',
+  sort_order: 'desc'
+});
 console.log(`Found ${recordings.total} recordings`);
 
-// Display video stream
-const img = document.createElement('img');
-img.src = client.getStreamUrl('video/front-door');
-document.body.appendChild(img);
+// Display first recording
+if (recordings.recordings.length > 0) {
+  const rec = recordings.recordings[0];
+  console.log(`Recording: ${rec.stream_name} at ${rec.timestamp}`);
+  console.log(`Duration: ${rec.duration.toFixed(2)}s, Confidence: ${rec.confidence.toFixed(2)}`);
+  
+  // Create video element
+  const video = document.createElement('video');
+  video.src = client.getRecordingUrl(rec.file_url);
+  video.controls = true;
+  document.body.appendChild(video);
+}
 ```
 
 ---
@@ -429,16 +501,22 @@ curl http://localhost:8080/status | jq
 curl http://localhost:8080/api/recordings?limit=10 | jq
 
 # Find recordings with people
-curl "http://localhost:8080/api/recordings?object=person" | jq
+curl "http://localhost:8080/api/recordings?object_type=person" | jq
 
-# Find recordings with tracker ID 42
-curl "http://localhost:8080/api/recordings?tracker_id=42" | jq
+# Find recordings with high confidence, sorted by confidence
+curl "http://localhost:8080/api/recordings?min_confidence=0.8&sort_by=confidence&sort_order=desc" | jq
+
+# Filter by date range
+curl "http://localhost:8080/api/recordings?start_date=2025-10-01&end_date=2025-10-12" | jq
 
 # Get recording statistics
 curl http://localhost:8080/api/recordings/stats | jq
 
-# Download a recording
-curl -O http://localhost:8080/recordings/recording_20251012_190530_front-door.mp4
+# Download a recording (use file_url from API response)
+curl -O http://localhost:8080/recordings/front-door_2025-10-12_19-05-30.mp4
+
+# Get a specific recording's details
+curl http://localhost:8080/api/recordings/42 | jq
 
 # Stream video to file
 curl "http://localhost:8080/video/stream?path=video/front-door" > stream.mjpeg

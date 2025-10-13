@@ -162,7 +162,8 @@ class SurveillanceConfig:
                 'post_buffer_seconds': 10,
                 'max_storage_gb': 10.0,
                 'recordings_dir': '~/video-feed-recordings',
-                'record_objects': []
+                'record_objects': [],
+                'codec': 'avc1'
             }
         }
     
@@ -270,3 +271,11 @@ class SurveillanceConfig:
             List of object classes to record. Empty list means record all objects.
         """
         return self.get_recording_config().get('record_objects', [])
+    
+    def get_recording_codec(self) -> str:
+        """Get video codec for recordings.
+        
+        Returns:
+            str: Video codec (e.g., 'avc1' for H.264, 'mp4v' for MPEG-4)
+        """
+        return self.get_recording_config().get('codec', 'avc1')

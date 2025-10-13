@@ -1,6 +1,7 @@
 """File serving routes with security checks."""
 
 import logging
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
@@ -25,8 +26,15 @@ async def serve_recording_file(file_path: str):
     """Serve a recording file (video or thumbnail) with security checks."""
     global recordings_directory
     
+    # Initialize recordings directory if not set
     if not recordings_directory:
-        raise HTTPException(status_code=404, detail="Recording directory not configured")
+        # Try to use the default location
+        default_path = os.path.expanduser("~/video-feed-recordings")
+        if os.path.exists(default_path):
+            recordings_directory = default_path
+            logger.info(f"Auto-initialized recordings directory to: {recordings_directory}")
+        else:
+            raise HTTPException(status_code=404, detail="Recording directory not configured")
     
     try:
         # Convert to Path objects and resolve to absolute paths

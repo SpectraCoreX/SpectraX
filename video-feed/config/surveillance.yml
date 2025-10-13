@@ -64,7 +64,7 @@ detection:
     # Only detect these object classes (empty list = detect ALL objects)
     # Common classes: person, car, truck, bus, motorcycle, bicycle, dog, cat, bird
     # IMPORTANT: Empty [] = detect everything, ["person"] = only detect people
-    classes: []  # Leave empty to detect all objects
+    classes: ["person", "mouse", "laptop", "bed", "mug", "phone"]  # Leave empty to detect all objects
     
     # Filter by detection size (in pixels)
     min_area: null  # Minimum detection area (null = no limit)
@@ -123,7 +123,7 @@ recording:
   
   # Buffer settings (seconds)
   pre_buffer_seconds: 10   # Record X seconds BEFORE detection
-  post_buffer_seconds: 10  # Record X seconds AFTER last detection
+  post_buffer_seconds: 20  # Record X seconds AFTER last detection
   
   # Storage management
   max_storage_gb: 10.0                    # Maximum storage before cleanup (in GB)
@@ -136,6 +136,11 @@ recording:
   # Empty list = record all detections
   # Example: ["person", "car"] = only record people and cars
   record_objects: ["person", "car", "dog", "cat", "knife", "gun"]
+  
+  # Video codec for recordings
+  # Options: "avc1" (H.264, browser-compatible), "mp4v" (MPEG-4, legacy)
+  # IMPORTANT: Use "avc1" for web browser streaming compatibility
+  codec: "avc1"
 
 # ============================================================
 # SECURITY SETTINGS

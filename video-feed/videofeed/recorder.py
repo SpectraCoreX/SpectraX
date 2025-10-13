@@ -29,7 +29,7 @@ class RecordingManager:
         post_detection_buffer: int = 10,    # Seconds to keep after last detection
         min_confidence: float = 0.5,        # Minimum confidence to trigger recording
         target_fps: int = 30,               # Target FPS for recordings
-        codec: str = 'mp4v',                # Video codec (mp4v is widely compatible)
+        codec: str = 'avc1',                # Video codec (H.264/AVC for browser compatibility)
         max_storage_gb: float = 10.0,       # Max storage in GB before cleanup
         record_objects: List[str] = []      # List of object classes to record (empty means all)
     ):

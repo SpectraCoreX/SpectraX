@@ -155,6 +155,31 @@ async def get_recordings(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/stats")
+async def get_recording_stats(
+    stream_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+):
+    """Get comprehensive statistics about recordings."""
+    global recordings_api
+    
+    # Try to initialize recordings API if needed
+    if not initialize_recordings_api():
+        raise HTTPException(status_code=503, detail="Recording API not initialized")
+    
+    try:
+        stats = recordings_api.get_comprehensive_stats(
+            stream_id=stream_id,
+            start_date=start_date,
+            end_date=end_date
+        )
+        return stats
+    except Exception as e:
+        logger.error(f"Error retrieving recording statistics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.delete("/{recording_id}")
 async def delete_recording(recording_id: int):
     """Delete a recording by ID."""

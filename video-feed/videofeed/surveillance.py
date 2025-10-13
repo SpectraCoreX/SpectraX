@@ -165,7 +165,8 @@ class SurveillanceSystem:
         recording_pre_buffer: int = 10,
         recording_post_buffer: int = 10,
         recordings_dir: Optional[str] = None,
-        record_objects: List[str] = []
+        record_objects: List[str] = [],
+        recording_codec: str = 'avc1'
     ):
         """Start the object detection service in a separate thread."""
         # Store recording configuration for status display
@@ -209,7 +210,8 @@ class SurveillanceSystem:
                         min_confidence=recording_min_confidence,
                         pre_detection_buffer=recording_pre_buffer,
                         post_detection_buffer=recording_post_buffer,
-                        record_objects=record_objects
+                        record_objects=record_objects,
+                        codec=recording_codec
                     )
                     recording_manager.start()
                     # typer.echo(f"📹 Recording enabled - clips will be saved to {recording_manager.recordings_dir}")
@@ -410,6 +412,7 @@ def config(
         recording_post_buffer=config.get_recording_post_buffer(),
         recordings_dir=config.get_recordings_directory(),
         record_objects=config.get_record_objects(),
+        recording_codec=config.get_recording_codec(),
     )
 
 
@@ -437,6 +440,7 @@ def start(
     recording_post_buffer: int = typer.Option(10, "--post-buffer", help="Post-detection buffer seconds"),
     recordings_dir: Optional[str] = typer.Option(None, "--recordings-dir", help="Recordings directory"),
     record_objects: List[str] = typer.Option([], "--record-objects", help="List of object classes to record (empty means all)"),
+    recording_codec: str = typer.Option("avc1", "--recording-codec", help="Video codec for recordings (avc1=H.264, mp4v=MPEG-4)"),
 ):
     """Start the unified surveillance system with streaming and object detection."""
     
@@ -471,7 +475,8 @@ def start(
                 recording_pre_buffer=recording_pre_buffer,
                 recording_post_buffer=recording_post_buffer,
                 recordings_dir=recordings_dir,
-                record_objects=record_objects
+                record_objects=record_objects,
+                recording_codec=recording_codec
             )
             time.sleep(2)  # Give detector time to initialize
             

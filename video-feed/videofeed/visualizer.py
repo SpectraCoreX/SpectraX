@@ -153,7 +153,8 @@ def start_visualizer(
     recordings_dir: Optional[str] = None,
     min_confidence: float = 0.5,
     pre_detection_buffer: int = 5,
-    post_detection_buffer: int = 5
+    post_detection_buffer: int = 5,
+    codec: str = 'avc1'
 ):
     """Start the API server with object detection for multiple streams.
     
@@ -199,7 +200,8 @@ def start_visualizer(
             recordings_dir=recordings_directory,
             min_confidence=min_confidence,
             pre_detection_buffer=pre_detection_buffer,
-            post_detection_buffer=post_detection_buffer
+            post_detection_buffer=post_detection_buffer,
+            codec=codec
         )
         recording_manager.start()
         

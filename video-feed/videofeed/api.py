@@ -546,3 +546,134 @@ class RecordingsAPI:
         except Exception as e:
             logger.error(f"Error getting stream stats: {e}")
             return {'recording_count': 0, 'total_duration': 0, 'latest_recording': None}
+    
+    def get_comprehensive_stats(self,
+                               stream_id: Optional[str] = None,
+                               start_date: Optional[str] = None,
+                               end_date: Optional[str] = None) -> Dict:
+        """Get comprehensive recording statistics.
+        
+        Args:
+            stream_id: Filter by stream ID (optional)
+            start_date: Start date filter (ISO format)
+            end_date: End date filter (ISO format)
+            
+        Returns:
+            Dictionary with comprehensive statistics matching API spec
+        """
+        try:
+            cursor = self.db_conn.cursor()
+            
+            # Build base query with filters
+            query = 'SELECT * FROM recordings WHERE retained = 1'
+            params = []
+            
+            if stream_id:
+                query += ' AND stream_id = ?'
+                params.append(stream_id)
+            if start_date:
+                query += ' AND timestamp >= ?'
+                params.append(start_date)
+            if end_date:
+                query += ' AND timestamp <= ?'
+                params.append(end_date)
+            
+            cursor.execute(query, params)
+            columns = [col[0] for col in cursor.description]
+            recordings = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            
+            # Initialize stats
+            total_recordings = len(recordings)
+            total_duration = 0
+            total_size = 0
+            object_counts = {}
+            tracker_counts = {}
+            camera_stats = {}
+            oldest_timestamp = None
+            newest_timestamp = None
+            
+            # Process each recording
+            for rec in recordings:
+                # Duration
+                if rec.get('duration'):
+                    total_duration += rec['duration']
+                
+                # File size
+                if rec.get('file_size'):
+                    total_size += rec['file_size']
+                
+                # Timestamps
+                timestamp = rec.get('timestamp')
+                if timestamp:
+                    if oldest_timestamp is None or timestamp < oldest_timestamp:
+                        oldest_timestamp = timestamp
+                    if newest_timestamp is None or timestamp > newest_timestamp:
+                        newest_timestamp = timestamp
+                
+                # Objects
+                if rec.get('objects_detected'):
+                    try:
+                        objects = json.loads(rec['objects_detected'])
+                        seen_objects = set()
+                        for obj in objects:
+                            obj_class = obj.get('class')
+                            if obj_class:
+                                seen_objects.add(obj_class)
+                        
+                        for obj_class in seen_objects:
+                            object_counts[obj_class] = object_counts.get(obj_class, 0) + 1
+                    except:
+                        pass
+                
+                # Trackers
+                if rec.get('tracker_ids'):
+                    try:
+                        tracker_ids = json.loads(rec['tracker_ids'])
+                        for tracker_id in tracker_ids:
+                            tracker_counts[tracker_id] = tracker_counts.get(tracker_id, 0) + 1
+                    except:
+                        pass
+                
+                # Camera/stream stats
+                stream = rec.get('stream_id') or rec.get('stream_name', 'unknown')
+                if stream not in camera_stats:
+                    camera_stats[stream] = {'count': 0, 'duration_seconds': 0}
+                camera_stats[stream]['count'] += 1
+                if rec.get('duration'):
+                    camera_stats[stream]['duration_seconds'] += rec['duration']
+            
+            # Get most frequent trackers
+            most_frequent_trackers = sorted(
+                [{'tracker_id': tid, 'appearances': count} for tid, count in tracker_counts.items()],
+                key=lambda x: x['appearances'],
+                reverse=True
+            )[:10]  # Top 10
+            
+            # Build response
+            return {
+                'total_recordings': total_recordings,
+                'total_duration_seconds': round(total_duration, 2),
+                'total_size_bytes': total_size,
+                'total_size_gb': round(total_size / (1024**3), 2) if total_size > 0 else 0,
+                'oldest_recording': oldest_timestamp,
+                'newest_recording': newest_timestamp,
+                'objects': object_counts,
+                'trackers': {
+                    'total_unique_ids': len(tracker_counts),
+                    'most_frequent': most_frequent_trackers
+                },
+                'by_camera': camera_stats
+            }
+        except Exception as e:
+            logger.error(f"Error getting comprehensive stats: {e}")
+            return {
+                'total_recordings': 0,
+                'total_duration_seconds': 0,
+                'total_size_bytes': 0,
+                'total_size_gb': 0,
+                'oldest_recording': None,
+                'newest_recording': None,
+                'objects': {},
+                'trackers': {'total_unique_ids': 0, 'most_frequent': []},
+                'by_camera': {}
+            }

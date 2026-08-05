@@ -1,1 +1,1 @@
-"""Test suite for SentriX surveillance system."""
+"""Test suite for SpectraX surveillance system."""

@@ -102,7 +102,7 @@ SpectraX wraps [MediaMTX](https://github.com/bluenviron/mediamtx), a powerful RT
 
 ```bash
 # Clone the repository
-git clone https://github.com/soos3d/SpectraX.git
+git clone https://github.com/SpectraCoreX/SpectraX.git
 cd SpectraX
 
 # Create virtual environment

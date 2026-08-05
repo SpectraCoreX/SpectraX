@@ -18,7 +18,7 @@ SpectraX is a streamlined surveillance system for turning any phone, tablet, or 
 
 ## What It Does
 
-SpectraX wraps [MediaMTX](https://github.com/bluenviron/mediamtx), a powerful RTSP/HLS server, with intelligent object detection, tracking, and recording capabilities. Turn any device with a camera into a smart surveillance system with advanced analytics in minutes.
+SpectraX wraps [MediaMTX](https://github.com/bluenviron/mediamtx), a powerful RTSP/HLS server, with intelligent object detection, tracking, and recording capabilities. The vision pipeline is built on [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) for detection and [Roboflow's supervision](https://github.com/roboflow/supervision) library for annotations and ByteTrack tracking. Turn any device with a camera into a smart surveillance system with advanced analytics in minutes.
 
 ## Key Features
 
@@ -32,12 +32,12 @@ SpectraX wraps [MediaMTX](https://github.com/bluenviron/mediamtx), a powerful RT
 - **YOLO Integration**: Real-time object detection using YOLOv8 models
 - **Customizable Models**: Choose from nano (fast) to large (accurate) models
 - **Smart Filtering**: Detect specific objects (person, car, dog, etc.)
-- **Visual Overlays**: Bounding boxes and labels on detected objects
+- **Visual Overlays**: Bounding boxes and labels rendered with [Roboflow supervision](https://github.com/roboflow/supervision) annotators
 - **Adjustable Confidence**: Fine-tune detection sensitivity
 
 ### 🎯 Object Tracking (NEW!)
 - **Persistent IDs**: Track individual objects across frames with unique IDs
-- **ByteTrack Integration**: State-of-the-art multi-object tracking
+- **ByteTrack Integration**: State-of-the-art multi-object tracking via [Roboflow supervision](https://github.com/roboflow/supervision)
 - **Visual Feedback**: See tracker IDs in labels (e.g., "person #42 0.95")
 - **Database Storage**: Query recordings by specific tracker ID
 - **Analytics**: Track which objects appear most frequently
@@ -262,6 +262,6 @@ See [LICENSE](LICENSE) file for details.
 
 - [MediaMTX](https://github.com/bluenviron/mediamtx) - Excellent RTSP/HLS server
 - [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) - State-of-the-art object detection
-- [Supervision](https://github.com/roboflow/supervision) - Computer vision utilities and ByteTrack integration
+- [Roboflow Supervision](https://github.com/roboflow/supervision) - Computer vision utilities, annotators, and ByteTrack integration
 - [ByteTrack](https://github.com/ifzhang/ByteTrack) - Multi-object tracking algorithm
 - [FastAPI](https://fastapi.tiangolo.com/) - Modern web framework

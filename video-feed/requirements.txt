@@ -1,4 +1,4 @@
-# SentriX Surveillance System - Core Dependencies
+# SpectraX Surveillance System - Core Dependencies
 # Optimized requirements file (cleaned up 2025-10-02)
 
 # ============================================================

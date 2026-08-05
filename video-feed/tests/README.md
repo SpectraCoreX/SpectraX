@@ -1,6 +1,6 @@
-# SentriX Test Suite
+# SpectraX Test Suite
 
-This directory contains all tests for the SentriX surveillance system.
+This directory contains all tests for the SpectraX surveillance system.
 
 ## Test Organization
 

@@ -552,7 +552,7 @@ for detection, tracker_id in zip(tracked, tracked.tracker_id):
 
 ```bash
 # Clone repository
-git clone https://github.com/soos3d/SpectraX.git
+git clone https://github.com/SpectraCoreX/SpectraX.git
 cd SpectraX
 
 # Create virtual environment
